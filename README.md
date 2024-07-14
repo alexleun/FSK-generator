@@ -1,41 +1,42 @@
 # FSK Signal Generator
 
-This Python program generates an FSK (Frequency Shift Keying) signal using the square wave modulation method. The signal is then saved to a CSV file which can be imported into a signal generator or another program for analysis.
+This Python script generates an FSK signal from a binary data file and saves it to a CSV file with a "-fsk-<center-frequency>".csv extension appended to its name.
 
-## Getting Started
+## Installation
 
-To use this script, you will need to have Python installed on your computer. You also need to install the scipy and numpy libraries if you haven't already. You can do this using pip:
+To use this script, you will need to have Python installed on your computer. You can download Python from the official website: https://www.python.org/downloads/
 
-```
-pip install scipy numpy
-```
-
-Once you have installed the required libraries, you can run the script by navigating to its directory in the terminal/command prompt and typing:
+Once you have Python installed, you can install the required dependencies by running the following command in your terminal or command prompt:
 
 ```
-python fsk_signal_generator.py
+pip install numpy scipy
 ```
 
-## Input Data File
+## Usage
 
-The input data file ("data.txt") should contain one character per line, where each character is either a '0' or a '1'. For example:
+To generate an FSK signal from a binary data file and save it to a CSV file, use the following command syntax in your terminal or command prompt:
 
 ```
-101010
-111000
-001100
-110011
+python main.py <input-file> [--frequency] [--deviation] [--output]
 ```
 
-These are the binary representations of the numbers 2, 3, 6 and 7 respectively. You can use any text editor to create this file, save it with the name "data.txt", and then run the script as described above.
+Here are the details for each argument:
 
-## Output CSV File
+- `<input-file>` is the path to the input binary data file that you want to generate an FSK signal from.
 
-The resulting FSK signal is saved to a CSV file named "output.csv". This file contains one column of numbers representing the amplitude of the signal at each time sample. You can open this file in any spreadsheet program to view it.
+- `[--frequency]` (optional) specifies the center frequency in Hz that you want the FSK signal to have (default: 50kHz). You can set this argument to any other value using the `--deviation` argument.
 
-## Settings
+- `[--deviation]` (optional) specifies the deviation from the center frequency in Hz that you want the FSK signal to have (default: +-700Hz). You can set this argument to any other value using the `--frequency` argument.
 
-You can change the settings for the FSK signal generator by editing the `center_freq` and `deviation` variables in the script. These variables are defined in the `generate_fsk` function, which takes these values as arguments when generating the signal. You can also change the sampling frequency (`fs`) if you need a different value.
+- `[--output]` (optional) specifies the output file name. By default, the output file name will be based on the input file name, but with "-fsk-<center-frequency>".csv appended to it. For example, if your input file is named "data.txt", then the default output file name would be "data-fsk-50kHz.csv". If you want a different output file name, you can use this argument to set it.
+
+To run your updated Python script from the command line and see its help message, simply type:
+
+```
+python main.py --help
+```
+
+This will display the usage information for your script. The `--help` option is used to indicate that the user wants to know more about how to use your script, so it is automatically executed by Python when you run your script from the command line.
 
 ## License
 
