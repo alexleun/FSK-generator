@@ -39,4 +39,4 @@ You can change the settings for the FSK signal generator by editing the `center_
 
 ## License
 
-This project is licensed under the MIT license. See the LICENSE file for more information.
+This project is licensed under the Apache-2.0 license. See the  Apache-2.0 LICENSE for more information.
