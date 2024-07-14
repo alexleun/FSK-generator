@@ -1,8 +1,9 @@
+import sys
+from argparse import ArgumentParser
 import numpy as np
 from scipy.io import write_csv_rows
 from scipy.signal import square
 
-# Function to generate FSK signal
 def generate_fsk(data, center_freq, deviation):
     fs = 1000000  # Sampling frequency in Hz
     t = np.arange(0, len(data), 1/fs)  # Time array
@@ -11,16 +12,20 @@ def generate_fsk(data, center_freq, deviation):
 
     return modulated_signal
 
-# Read data from txt file
-with open('data.txt', 'r') as f:
-    data = [line.strip() for line in f]
+def main():
+    parser = ArgumentParser(description='Generate an FSK signal from a binary data file.')
+    parser.add_argument('input_file', help='Path to the input binary data file')
+    parser.add_argument('--frequency', type=int, default=50000, help='Center frequency in Hz (default: 50kHz)')
+    parser.add_argument('--deviation', type=int, default=700, help='Deviation from center frequency in Hz (default: +- 700Hz)')
+    args = parser.parse_args()
 
-# Set center frequency and deviation
-center_freq = 50000  # Hz
-deviation = 700  # Hz
+    with open(args.input_file, 'r') as f:
+        data = [line.strip() for line in f]
 
-# Generate FSK signal
-signal = generate_fsk(data, center_freq, deviation)
+    signal = generate_fsk(data, args.frequency, args.deviation)
 
-# Write FSK signal to csv file
-write_csv_rows('output.csv', [list(signal)], header=None)
+    output_file = args.input_file.replace('.txt', '-fsk-{}.csv'.format(args.frequency))
+    write_csv_rows(output_file, [list(signal)], header=None)
+
+if __name__ == "__main__":
+    main()
