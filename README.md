@@ -70,7 +70,3 @@ The decoded binary string will be printed to the console.  Ensure the parameters
 
 Contributions are welcome! Please feel free to open issues or submit pull requests.
 
-
-## License
-
-[Specify your license here, e.g., MIT License]
