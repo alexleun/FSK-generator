@@ -2,36 +2,78 @@ import argparse
 import numpy as np
 from scipy.io import wavfile
 import librosa
+import librosa.display
+import matplotlib.pyplot as plt
+from scipy.signal import butter, lfilter
 
-def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=1024, hop_length=512):
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    """Designs and applies a Butterworth bandpass filter."""
+    nyq = 0.5 * fs
+    if lowcut <= 0 or highcut >= nyq or lowcut >= highcut:
+        print("Error: Invalid filter cutoff frequencies. Check lowcut and highcut values.")
+        return data # Return original data if filter parameters are invalid
+
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    y = lfilter(b, a, data)
+    return y
+
+def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2048, hop_length=512):
     """Decodes an FSK signal from a WAV file."""
 
-    # Load the WAV file
-    sr, data = wavfile.read(file_path)
-    
-        #Normalize and convert to float32 if necessary
+    try:
+        sr, data = wavfile.read(file_path)
+    except FileNotFoundError:
+        print(f"Error: File not found at {file_path}")
+        return
+    except wave.Error as e:
+        print(f"Error reading WAV file: {e}")
+        return
+
     if data.dtype != np.float32:
         data = data.astype(np.float32) / np.iinfo(data.dtype).max
 
-    # Perform Short-Time Fourier Transform (STFT)
-    stft = librosa.stft(data, n_fft=window_size, hop_length=hop_length)
+    nyquist_frequency = sr / 2
+    if frequency + deviation > nyquist_frequency:
+        print(f"Error: Carrier frequency + deviation ({frequency + deviation} Hz) exceeds the Nyquist frequency ({nyquist_frequency} Hz). Reduce the carrier frequency.")
+        return
+
+    # Apply bandpass filter. Add error handling for invalid filter parameters.
+    lowcut = frequency - deviation - 200  # Add margin for robustness
+    highcut = frequency + deviation + 200  # Add margin for robustness
+    filtered_data = butter_bandpass_filter(data, lowcut, highcut, sr)
+    if filtered_data is None: # Check if filter application failed
+        return
+
+
+    stft = librosa.stft(filtered_data, n_fft=window_size, hop_length=hop_length)
     magnitudes = np.abs(stft)
     frequencies = librosa.fft_frequencies(sr=sr, n_fft=window_size)
 
-    # Find peak frequencies for each frame
-    peak_frequencies = []
-    for frame in magnitudes.T:
-        peak_index = np.argmax(frame)
-        peak_frequencies.append(frequencies[peak_index])
-
-    # Decode the data based on peak frequencies
     decoded_data = ""
-    threshold = frequency
-    for freq in peak_frequencies:
-        if freq > threshold:
+    for frame in magnitudes.T:
+        # Find the two highest peaks. Handle cases with fewer than 2 peaks.
+        indices = np.argsort(frame)[-2:]
+        if len(indices) < 2:
+            print("Warning: Fewer than 2 peaks detected in a frame. Skipping frame.")
+            continue
+        peak_frequencies = frequencies[indices]
+
+        if peak_frequencies[1] > frequency:
             decoded_data += "1"
         else:
             decoded_data += "0"
+
+
+    # Plot the spectrogram
+    plt.figure(figsize=(10, 4))
+    librosa.display.specshow(librosa.power_to_db(magnitudes, ref=np.max),
+                             sr=sr, x_axis='time', y_axis='hz')
+    plt.colorbar(format='%+2.0f dB')
+    plt.title('FSK Spectrogram')
+    plt.tight_layout()
+    plt.show()
 
     print("Decoded data:", decoded_data)
 
