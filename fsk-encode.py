@@ -16,7 +16,7 @@ def generate_fsk_signal(bits, frequency, deviation, bit_duration=0.01, sample_ra
         frequency (float): The carrier frequency in Hz.
         deviation (float): The frequency deviation in Hz (difference between mark and space frequencies).
         bit_duration (float, optional): The duration of each bit in seconds. Defaults to 0.01 seconds.
-        sample_rate (int, optional): The sample rate in Hz. Defaults to 44100 Hz.
+        sample_rate (int, optional): The sample rate in Hz.  This is now a user-specified argument.
 
     Returns:
         numpy.ndarray: A NumPy array containing the generated FSK signal.  Returns None if input is invalid.
@@ -78,9 +78,10 @@ if __name__ == "__main__":
     parser.add_argument('--frequency', type=float, required=True, help='Carrier frequency in Hz')
     parser.add_argument('--deviation', type=float, required=True, help='Frequency deviation in Hz')
     parser.add_argument('--output', type=str, default='output.wav', help='Output WAV file name')
+    parser.add_argument('--sample-rate', type=int, default=44100, help='Sample rate in Hz') #Added sample rate argument
     args = parser.parse_args()
 
-    signal = generate_fsk_signal(args.bits, args.frequency, args.deviation)
+    signal = generate_fsk_signal(args.bits, args.frequency, args.deviation, sample_rate=args.sample_rate)
     if signal is not None:
         num_bits = len(args.bits)
         total_duration = num_bits * 0.01 # Assuming 10ms per bit
@@ -90,7 +91,7 @@ if __name__ == "__main__":
         logging.info(f"Total duration: {total_duration:.4f} seconds")
         logging.info(f"Number of samples: {num_samples}")
         logging.info(f"Bit duration used: 0.01 seconds")
-        logging.info(f"Sample rate used: 44100 Hz")
+        logging.info(f"Sample rate used: {args.sample_rate} Hz") #Using the user-specified sample rate
         logging.info(f"Frequency used: {args.frequency} Hz")
         logging.info(f"Deviation used: {args.deviation} Hz")
-        save_wav_file(args.output, signal, 44100)
+        save_wav_file(args.output, signal, args.sample_rate) #Using the user-specified sample rate
