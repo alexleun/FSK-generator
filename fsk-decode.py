@@ -1,17 +1,23 @@
 import argparse
+import logging
 import numpy as np
 from scipy.io import wavfile
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
 from scipy.signal import butter, lfilter
+import wave
+
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     """Designs and applies a Butterworth bandpass filter."""
     nyq = 0.5 * fs
     if lowcut <= 0 or highcut >= nyq or lowcut >= highcut:
-        print("Error: Invalid filter cutoff frequencies. Check lowcut and highcut values.")
-        return data # Return original data if filter parameters are invalid
+        logging.error("Invalid filter cutoff frequencies. Check lowcut and highcut values.")
+        return data  # Return original data if filter parameters are invalid
 
     low = lowcut / nyq
     high = highcut / nyq
@@ -25,10 +31,10 @@ def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2
     try:
         sr, data = wavfile.read(file_path)
     except FileNotFoundError:
-        print(f"Error: File not found at {file_path}")
+        logging.error(f"File not found at {file_path}")
         return
     except wave.Error as e:
-        print(f"Error reading WAV file: {e}")
+        logging.error(f"Error reading WAV file: {e}")
         return
 
     if data.dtype != np.float32:
@@ -36,16 +42,14 @@ def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2
 
     nyquist_frequency = sr / 2
     if frequency + deviation > nyquist_frequency:
-        print(f"Error: Carrier frequency + deviation ({frequency + deviation} Hz) exceeds the Nyquist frequency ({nyquist_frequency} Hz). Reduce the carrier frequency.")
+        logging.error(f"Carrier frequency + deviation ({frequency + deviation} Hz) exceeds the Nyquist frequency ({nyquist_frequency} Hz). Reduce the carrier frequency.")
         return
 
-    # Apply bandpass filter. Add error handling for invalid filter parameters.
-    lowcut = frequency - deviation - 200  # Add margin for robustness
-    highcut = frequency + deviation + 200  # Add margin for robustness
+    lowcut = frequency - deviation - 200
+    highcut = frequency + deviation + 200
     filtered_data = butter_bandpass_filter(data, lowcut, highcut, sr)
-    if filtered_data is None: # Check if filter application failed
+    if filtered_data is None:
         return
-
 
     stft = librosa.stft(filtered_data, n_fft=window_size, hop_length=hop_length)
     magnitudes = np.abs(stft)
@@ -53,10 +57,9 @@ def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2
 
     decoded_data = ""
     for frame in magnitudes.T:
-        # Find the two highest peaks. Handle cases with fewer than 2 peaks.
         indices = np.argsort(frame)[-2:]
         if len(indices) < 2:
-            print("Warning: Fewer than 2 peaks detected in a frame. Skipping frame.")
+            logging.warning("Fewer than 2 peaks detected in a frame. Skipping frame.")
             continue
         peak_frequencies = frequencies[indices]
 
@@ -65,8 +68,20 @@ def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2
         else:
             decoded_data += "0"
 
+    num_bits = len(decoded_data)
+    total_duration = num_bits * (1/sr) # Assuming 1 bit per sample
+    num_samples = len(data)
 
-    # Plot the spectrogram
+    logging.info(f"Decoded data: {decoded_data}")
+    logging.info(f"Number of bits: {num_bits}")
+    logging.info(f"Total duration: {total_duration:.4f} seconds")
+    logging.info(f"Number of samples: {num_samples}")
+    logging.info(f"Sample rate used: {sr} Hz")
+    logging.info(f"Frequency used: {frequency} Hz")
+    logging.info(f"Deviation used: {deviation} Hz")
+
+
+    # Plot the spectrogram (optional - remove if not needed)
     plt.figure(figsize=(10, 4))
     librosa.display.specshow(librosa.power_to_db(magnitudes, ref=np.max),
                              sr=sr, x_axis='time', y_axis='hz')
@@ -75,12 +90,11 @@ def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2
     plt.tight_layout()
     plt.show()
 
-    print("Decoded data:", decoded_data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Decode FSK signal')
     parser.add_argument('file_path', type=str, help='Path to the WAV file')
-    parser.add_argument('--frequency', type=float, default=10000, help='Carrier frequency')
-    parser.add_argument('--deviation', type=float, default=500, help='Frequency deviation')
+    parser.add_argument('--frequency', type=float, required=True, help='Carrier frequency')
+    parser.add_argument('--deviation', type=float, required=True, help='Frequency deviation')
     args = parser.parse_args()
     decode_fsk(args.file_path, args.frequency, args.deviation)
