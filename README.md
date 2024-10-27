@@ -1,43 +1,76 @@
-# FSK Signal Generator
+# FSK Modulation and Demodulation
 
-This Python script generates an FSK signal from a binary data file and saves it to a CSV file with a "-fsk-<center-frequency>".csv extension appended to its name.
+This repository contains Python scripts for encoding and decoding Frequency-Shift Keying (FSK) signals.  FSK is a digital modulation scheme that represents digital data as variations in the frequency of a carrier wave.
+
+## Features
+
+* **fsk-encode.py:** Encodes a binary string into an FSK signal and saves it as a WAV file.  Allows for customization of carrier frequency, frequency deviation, and bit duration.
+* **fsk-decode.py:** Decodes an FSK signal from a WAV file and outputs the decoded binary string.  Uses Short-Time Fourier Transform (STFT) for frequency analysis.
 
 ## Installation
 
-To use this script, you will need to have Python installed on your computer. You can download Python from the official website: https://www.python.org/downloads/
+The code requires the following Python libraries:
 
-Once you have Python installed, you can install the required dependencies by running the following command in your terminal or command prompt:
+* NumPy
+* SciPy
+* Wave
+* Librosa
+* Argparse
+* Matplotlib (optional, for visualization - not used in core functionality)
 
-```
-pip install numpy scipy
+You can install them using pip:
+
+```bash
+pip install numpy scipy wave librosa argparse matplotlib
 ```
 
 ## Usage
 
-To generate an FSK signal from a binary data file and save it to a CSV file, use the following command syntax in your terminal or command prompt:
+### Encoding (fsk-encode.py)
 
-```
-python main.py <input-file> [--frequency] [--deviation] [--output]
-```
+To encode data, run the script with the desired parameters:
 
-Here are the details for each argument:
-
-- `<input-file>` is the path to the input binary data file that you want to generate an FSK signal from.
-
-- `[--frequency]` (optional) specifies the center frequency in Hz that you want the FSK signal to have (default: 50kHz). You can set this argument to any other value using the `--deviation` argument.
-
-- `[--deviation]` (optional) specifies the deviation from the center frequency in Hz that you want the FSK signal to have (default: +-700Hz). You can set this argument to any other value using the `--frequency` argument.
-
-- `[--output]` (optional) specifies the output file name. By default, the output file name will be based on the input file name, but with "-fsk-<center-frequency>".csv appended to it. For example, if your input file is named "data.txt", then the default output file name would be "data-fsk-50kHz.csv". If you want a different output file name, you can use this argument to set it.
-
-To run your updated Python script from the command line and see its help message, simply type:
-
-```
-python main.py --help
+```bash
+python fsk-encode.py "10110100" --frequency 10000 --deviation 500 --bit_duration 0.01
 ```
 
-This will display the usage information for your script. The `--help` option is used to indicate that the user wants to know more about how to use your script, so it is automatically executed by Python when you run your script from the command line.
+This command will:
+
+* Encode the binary string "10110100".
+* Use a carrier frequency of 10000 Hz.
+* Use a frequency deviation of 500 Hz.
+* Set the bit duration to 0.01 seconds.
+
+The resulting FSK signal will be saved as `output.wav`.  You can adjust the parameters as needed.  If parameters are omitted, default values will be used.
+
+
+### Decoding (fsk-decode.py)
+
+To decode a WAV file, run the script with the path to the WAV file and the encoding parameters used during encoding:
+
+```bash
+python fsk-decode.py output.wav --frequency 10000 --deviation 500
+```
+
+This command will:
+
+* Decode the FSK signal from `output.wav`.
+* Use a carrier frequency of 10000 Hz and a frequency deviation of 500 Hz (matching the encoding parameters).
+
+The decoded binary string will be printed to the console.  Ensure the parameters used for decoding match those used for encoding.
+
+
+## Example Workflow
+
+1. **Encode:**  `python fsk-encode.py "1010101011" --frequency 12000 --deviation 750 > encoded.wav`
+2. **Decode:** `python fsk-decode.py encoded.wav --frequency 12000 --deviation 750`
+
+
+## Contributing
+
+Contributions are welcome! Please feel free to open issues or submit pull requests.
+
 
 ## License
 
-This project is licensed under the Apache-2.0 license. See the  Apache-2.0 LICENSE for more information.
+[Specify your license here, e.g., MIT License]
