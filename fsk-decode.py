@@ -8,12 +8,23 @@ import matplotlib.pyplot as plt
 from scipy.signal import butter, lfilter
 import wave
 
-
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
-    """Designs and applies a Butterworth bandpass filter."""
+    """
+    Designs and applies a Butterworth bandpass filter.
+
+    Args:
+        data (numpy.ndarray): The input signal.
+        lowcut (float): The lower cutoff frequency in Hz.
+        highcut (float): The upper cutoff frequency in Hz.
+        fs (float): The sample rate in Hz.
+        order (int, optional): The filter order. Defaults to 5.
+
+    Returns:
+        numpy.ndarray: The filtered signal. Returns the original data if filter parameters are invalid.
+    """
     nyq = 0.5 * fs
     if lowcut <= 0 or highcut >= nyq or lowcut >= highcut:
         logging.error("Invalid filter cutoff frequencies. Check lowcut and highcut values.")
@@ -26,8 +37,17 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     return y
 
 def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2048, hop_length=512):
-    """Decodes an FSK signal from a WAV file."""
+    """
+    Decodes an FSK signal from a WAV file.
 
+    Args:
+        file_path (str): Path to the WAV file.
+        frequency (float): The carrier frequency in Hz.
+        deviation (float): The frequency deviation in Hz.
+        sample_rate (int, optional): The sample rate in Hz. Defaults to 44100 Hz.
+        window_size (int, optional): The window size for STFT. Defaults to 2048.
+        hop_length (int, optional): The hop length for STFT. Defaults to 512.
+    """
     try:
         sr, data = wavfile.read(file_path)
     except FileNotFoundError:
@@ -80,7 +100,6 @@ def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2
     logging.info(f"Frequency used: {frequency} Hz")
     logging.info(f"Deviation used: {deviation} Hz")
 
-
     # Plot the spectrogram (optional - remove if not needed)
     plt.figure(figsize=(10, 4))
     librosa.display.specshow(librosa.power_to_db(magnitudes, ref=np.max),
@@ -90,11 +109,10 @@ def decode_fsk(file_path, frequency, deviation, sample_rate=44100, window_size=2
     plt.tight_layout()
     plt.show()
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Decode FSK signal')
     parser.add_argument('file_path', type=str, help='Path to the WAV file')
-    parser.add_argument('--frequency', type=float, required=True, help='Carrier frequency')
-    parser.add_argument('--deviation', type=float, required=True, help='Frequency deviation')
+    parser.add_argument('--frequency', type=float, required=True, help='Carrier frequency in Hz')
+    parser.add_argument('--deviation', type=float, required=True, help='Frequency deviation in Hz')
     args = parser.parse_args()
     decode_fsk(args.file_path, args.frequency, args.deviation)
