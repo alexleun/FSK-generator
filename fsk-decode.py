@@ -12,9 +12,6 @@ import wave
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
-    """
-    Designs and applies a Butterworth bandpass filter.
-    """
     nyq = 0.5 * fs
     if lowcut <= 0 or highcut >= nyq or lowcut >= highcut:
         logging.error("Invalid filter cutoff frequencies. Check lowcut and highcut values.")
@@ -26,19 +23,7 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     return y
 
 def decode_fsk(file_path, frequency, deviation, bit_duration, window_size=2048, hop_length=512):
-    """
-    Decodes an FSK signal from a WAV file, automatically detecting the sample rate.
-
-    Args:
-        file_path (str): Path to the WAV file.
-        frequency (float): The carrier frequency in Hz.
-        deviation (float): The frequency deviation in Hz.
-        bit_duration (float): Duration of each bit in seconds.
-        window_size (int, optional): The window size for STFT. Defaults to 2048.
-        hop_length (int, optional): The hop length for STFT. Defaults to 512.
-    """
     try:
-        # Read WAV file and automatically get sample rate
         sr, data = wavfile.read(file_path)
         logging.info(f"Detected sample rate: {sr} Hz")
     except FileNotFoundError:
@@ -68,16 +53,24 @@ def decode_fsk(file_path, frequency, deviation, bit_duration, window_size=2048, 
 
     decoded_data = ""
     samples_per_bit = int(sr * bit_duration)
-    num_frames = int(len(data) / samples_per_bit)
+    num_frames = int(np.ceil(len(filtered_data) / samples_per_bit)) #Corrected frame calculation
+
 
     for i in range(num_frames):
         start_sample = i * samples_per_bit
-        end_sample = (i + 1) * samples_per_bit
+        end_sample = min((i + 1) * samples_per_bit, len(filtered_data))
+        if start_sample >= len(filtered_data) or start_sample == end_sample:
+            continue
+
         frame_magnitudes = magnitudes[:, int(start_sample / hop_length):int(end_sample / hop_length)]
-        # Average across frames for better peak detection
+
+        if frame_magnitudes.size == 0:
+            continue
+
         avg_magnitudes = np.mean(frame_magnitudes, axis=1)
         peak_index = np.argmax(avg_magnitudes)
         peak_frequency = frequencies[peak_index]
+        logging.debug(f"Frame {i}: Peak frequency = {peak_frequency:.2f} Hz") #Added logging
 
         if peak_frequency > frequency + deviation / 2:
             decoded_data += "1"
@@ -96,7 +89,6 @@ def decode_fsk(file_path, frequency, deviation, bit_duration, window_size=2048, 
     logging.info(f"Frequency used: {frequency} Hz")
     logging.info(f"Deviation used: {deviation} Hz")
 
-    # Spectrogram plotting
     plt.figure(figsize=(10, 4))
     librosa.display.specshow(librosa.power_to_db(magnitudes, ref=np.max),
                              sr=sr, x_axis='time', y_axis='hz')
@@ -111,6 +103,12 @@ if __name__ == "__main__":
     parser.add_argument('file_path', type=str, help='Path to the WAV file')
     parser.add_argument('--frequency', type=float, required=True, help='Carrier frequency in Hz')
     parser.add_argument('--deviation', type=float, required=True, help='Frequency deviation in Hz')
-    parser.add_argument('--bit-duration', type=float, required=True, help='Duration of each bit in seconds')
+    parser.add_argument('--baud-rate', type=float, required=True, help='Baud rate')
+    parser.add_argument('--debug', type=int, default=20, choices=[10, 20, 30, 40, 50], help='Debug level (10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR, 50=CRITICAL)')
     args = parser.parse_args()
-    decode_fsk(args.file_path, args.frequency, args.deviation, args.bit_duration)
+
+    numeric_level = args.debug
+    logging.basicConfig(level=numeric_level)
+
+    bit_duration = 1.0 / args.baud_rate
+    decode_fsk(args.file_path, args.frequency, args.deviation, bit_duration)
