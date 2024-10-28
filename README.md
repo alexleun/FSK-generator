@@ -1,6 +1,3 @@
-You are absolutely right!  My apologies.  Here's the updated `README.md` including information about the debug level:
-
-```markdown
 # FSK Modulation and Demodulation: A Robust Python Implementation
 
 This repository provides Python scripts for encoding and decoding Frequency-Shift Keying (FSK) signals. FSK is a digital modulation technique that represents digital data by variations in the frequency of a carrier wave. This implementation prioritizes accuracy and robustness, particularly in noisy environments.
