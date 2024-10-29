@@ -5,7 +5,7 @@ from scipy.io import wavfile
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, lfilter, sosfiltfilt
 import wave
 
 # Configure logging
@@ -15,17 +15,15 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
     if lowcut <= 0 or highcut >= nyq or lowcut >= highcut:
         logging.error("Invalid filter cutoff frequencies. Check lowcut and highcut values.")
-        return data
-    low = lowcut / nyq
-    high = highcut / nyq
-    b, a = butter(order, [low, high], btype='band')
-    y = lfilter(b, a, data)
+        return None
+    sos = butter(order, [lowcut, highcut], btype='band', fs=fs, output='sos') #Use SOS for numerical stability
+    y = sosfiltfilt(sos, data) # Use sosfiltfilt for zero-phase filtering
     return y
 
-def decode_fsk(file_path, frequency, deviation, bit_duration, window_size=2048, hop_length=512):
+def decode_fsk(file_path, frequency, deviation, bit_duration, window_size=2048, hop_length=512, resample_rate=200000):
     try:
         sr, data = wavfile.read(file_path)
-        logging.info(f"Detected sample rate: {sr} Hz")
+        logging.info(f"Original sample rate: {sr} Hz")
     except FileNotFoundError:
         logging.error(f"File not found at {file_path}")
         return
@@ -33,8 +31,14 @@ def decode_fsk(file_path, frequency, deviation, bit_duration, window_size=2048, 
         logging.error(f"Error reading WAV file: {e}")
         return
 
-    if data.dtype != np.float32:
-        data = data.astype(np.float32) / np.iinfo(data.dtype).max
+    #Resample to a lower rate
+    data = librosa.resample(data.astype(np.float32), orig_sr=sr, target_sr=resample_rate)
+    sr = resample_rate
+    logging.info(f"Resampled to: {sr} Hz")
+
+
+    #Improved clipping check and normalization
+    data = np.clip(data, -1, 1) #Clip values to prevent issues
 
     nyquist_frequency = sr / 2
     if frequency + deviation > nyquist_frequency:
@@ -50,6 +54,10 @@ def decode_fsk(file_path, frequency, deviation, bit_duration, window_size=2048, 
     stft = librosa.stft(filtered_data, n_fft=window_size, hop_length=hop_length)
     magnitudes = np.abs(stft)
     frequencies = librosa.fft_frequencies(sr=sr, n_fft=window_size)
+
+    # ... (rest of the decode_fsk function remains the same)
+
+# ... (rest of the code remains the same)
 
     decoded_data = ""
     samples_per_bit = int(sr * bit_duration)
